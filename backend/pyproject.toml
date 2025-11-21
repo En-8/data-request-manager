@@ -8,3 +8,13 @@ dependencies = [
     "fastapi[standard]>=0.121.3",
     "ruff>=0.14.6",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+]

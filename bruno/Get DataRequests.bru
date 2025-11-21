@@ -1,0 +1,15 @@
+meta {
+  name: Get DataRequests
+  type: http
+  seq: 1
+}
+
+get {
+  url: localhost:8000/api/v1/data-requests
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

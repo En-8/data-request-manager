@@ -1,0 +1,22 @@
+[
+  {
+    "id": "acme-corp",
+    "name": "Acme Corporation"
+  },
+  {
+    "id": "globex-inc",
+    "name": "Globex Inc."
+  },
+  {
+    "id": "initech",
+    "name": "Initech"
+  },
+  {
+    "id": "umbrella-corp",
+    "name": "Umbrella Corporation"
+  },
+  {
+    "id": "wayne-enterprises",
+    "name": "Wayne Enterprises"
+  }
+]

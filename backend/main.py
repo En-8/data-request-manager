@@ -1,5 +1,7 @@
-from typing import Union
+from dataclasses import asdict
+from typing import Any
 
+from core import get_all_data_requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,10 +17,12 @@ app.add_middleware(
 
 
 @app.get("/")
-def read_root():
+def read_root() -> dict[str, str]:
     return {"Hello": "World"}
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+@app.get("/api/v1/data-requests")
+def get_data_requests() -> list[dict[str, Any]]:
+    """Get all data requests."""
+    data_requests = get_all_data_requests()
+    return [asdict(dr) for dr in data_requests]
