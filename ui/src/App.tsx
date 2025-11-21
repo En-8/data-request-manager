@@ -7,16 +7,24 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataRequest, StatusLabels } from './types/data-request'
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
+import { Spinner } from '@/components/ui/spinner'
+import { type DataRequest, StatusLabels } from './types/data-request'
 import './App.css'
 
 function App() {
   const [dataRequests, setDataRequests] = useState<DataRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [status, setStatus] = useState('3') // Default to "Needs Review"
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/v1/data-requests')
+    setLoading(true)
+    fetch(`http://localhost:8000/api/v1/data-requests?status=${status}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch data requests')
@@ -31,11 +39,7 @@ function App() {
         setError(err.message)
         setLoading(false)
       })
-  }, [])
-
-  if (loading) {
-    return <div className="p-4">Loading...</div>
-  }
+  }, [status])
 
   if (error) {
     return <div className="p-4 text-red-500">Error: {error}</div>
@@ -44,32 +48,47 @@ function App() {
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Data Requests</h1>
+      <Tabs value={status} onValueChange={setStatus} className="mb-4">
+        <TabsList>
+          <TabsTrigger value="2">Processing</TabsTrigger>
+          <TabsTrigger value="3">Needs Review</TabsTrigger>
+          <TabsTrigger value="99">Complete</TabsTrigger>
+        </TabsList>
+      </Tabs>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Created On</TableHead>
-            <TableHead>Created By</TableHead>
-            <TableHead>Request Source ID</TableHead>
+            <TableHead className="w-[8%]">ID</TableHead>
+            <TableHead className="w-[20%]">Name</TableHead>
+            <TableHead className="w-[12%]">Status</TableHead>
+            <TableHead className="w-[15%]">Created On</TableHead>
+            <TableHead className="w-[20%]">Created By</TableHead>
+            <TableHead className="w-[25%]">Request Source ID</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {dataRequests.map((request) => (
-            <TableRow key={request.id}>
-              <TableCell>{request.id}</TableCell>
-              <TableCell>
-                {request.first_name} {request.last_name}
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-8">
+                <Spinner className="size-6 mx-auto" />
               </TableCell>
-              <TableCell>{StatusLabels[request.status] ?? request.status}</TableCell>
-              <TableCell>
-                {new Date(request.created_on).toLocaleDateString()}
-              </TableCell>
-              <TableCell>{request.created_by}</TableCell>
-              <TableCell>{request.request_source_id}</TableCell>
             </TableRow>
-          ))}
+          ) : (
+            dataRequests.map((request) => (
+              <TableRow key={request.id}>
+                <TableCell>{request.id}</TableCell>
+                <TableCell>
+                  {request.first_name} {request.last_name}
+                </TableCell>
+                <TableCell>{StatusLabels[request.status] ?? request.status}</TableCell>
+                <TableCell>
+                  {new Date(request.created_on).toLocaleDateString()}
+                </TableCell>
+                <TableCell>{request.created_by}</TableCell>
+                <TableCell>{request.request_source_id}</TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>
