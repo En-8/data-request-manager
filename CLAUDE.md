@@ -13,7 +13,8 @@ Full-stack case management application with React frontend and FastAPI backend.
 ```bash
 pnpm install          # Install dependencies
 pnpm dev              # Start dev server (http://localhost:5173)
-pnpm build            # Production build
+pnpm build            # Production build (runs tsc first)
+pnpm preview          # Preview production build
 pnpm typecheck        # Run TypeScript type checking
 ```
 
@@ -31,13 +32,14 @@ API docs available at http://localhost:8000/docs when backend is running.
 ## Architecture
 
 ### Frontend (ui/)
-- **React 19** with **React Router v7** configured as SPA (no SSR)
+- **React 19** with **React Router v7** (library mode, client-side routing only)
 - **TypeScript** with strict mode
 - **Tailwind CSS v4** for styling
-- **Vite** for bundling
+- **Vite** for dev server and bundling
 - Path alias: `~/` maps to `./app/`
-- Routes defined in `app/routes.ts`, pages in `app/routes/`
-- React Router generates types automatically in `.react-router/types/`
+- Entry point: `app/main.tsx`
+- Routes defined in `app/App.tsx`, pages in `app/pages/`
+- API calls made directly to backend (no proxy) - requires CORS on backend
 
 ### Backend (backend/)
 - **FastAPI** with Python 3.12
