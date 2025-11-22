@@ -3,7 +3,14 @@ from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 
-from core import DataRequest, Status, get_all_data_requests
+from core import (
+    DataRequest,
+    RequestSource,
+    Status,
+    create_data_request,
+    get_all_data_requests,
+    get_all_request_sources,
+)
 from main import app
 
 
@@ -163,3 +170,173 @@ class TestGetDataRequestsEndpoint:
             filtered_response = self.client.get(f"/api/v1/data-requests?status={status_value}")
             filtered_data = filtered_response.json()
             assert len(filtered_data) == expected_count
+
+
+class TestRequestSource:
+    def test_create_request_source(self) -> None:
+        request_source = RequestSource(
+            id="test-corp",
+            name="Test Corporation",
+        )
+
+        assert request_source.id == "test-corp"
+        assert request_source.name == "Test Corporation"
+
+
+class TestGetAllRequestSources:
+    @pytest.mark.asyncio
+    async def test_returns_list_of_request_sources(self) -> None:
+        request_sources = await get_all_request_sources()
+
+        assert isinstance(request_sources, list)
+        assert len(request_sources) > 0
+        assert all(isinstance(rs, RequestSource) for rs in request_sources)
+
+    @pytest.mark.asyncio
+    async def test_request_sources_have_correct_types(self) -> None:
+        request_sources = await get_all_request_sources()
+
+        for rs in request_sources:
+            assert isinstance(rs.id, str)
+            assert isinstance(rs.name, str)
+
+    @pytest.mark.asyncio
+    async def test_loads_expected_request_sources(self) -> None:
+        request_sources = await get_all_request_sources()
+
+        # Verify we have the expected number of request sources
+        assert len(request_sources) == 5
+
+        # Verify sources are ordered by name
+        names = [rs.name for rs in request_sources]
+        assert names == sorted(names)
+
+    @pytest.mark.asyncio
+    async def test_contains_known_request_source(self) -> None:
+        request_sources = await get_all_request_sources()
+        ids = {rs.id for rs in request_sources}
+
+        assert "acme-corp" in ids
+        assert "wayne-enterprises" in ids
+
+
+class TestCreateDataRequest:
+    @pytest.mark.asyncio
+    async def test_creates_data_request_with_correct_values(self) -> None:
+        data_request = await create_data_request(
+            first_name="Test",
+            last_name="User",
+            request_source_id="acme-corp",
+        )
+
+        assert isinstance(data_request, DataRequest)
+        assert data_request.first_name == "Test"
+        assert data_request.last_name == "User"
+        assert data_request.request_source_id == "acme-corp"
+        assert data_request.status == Status.PROCESSING
+        assert data_request.created_by == "demo_user"
+        assert isinstance(data_request.id, int)
+        assert isinstance(data_request.created_on, datetime)
+
+    @pytest.mark.asyncio
+    async def test_creates_data_request_with_auto_generated_id(self) -> None:
+        data_request = await create_data_request(
+            first_name="Another",
+            last_name="Test",
+            request_source_id="globex-inc",
+        )
+
+        assert data_request.id > 0
+
+
+class TestGetRequestSourcesEndpoint:
+    def setup_method(self) -> None:
+        self.client = TestClient(app)
+
+    def test_get_all_request_sources(self) -> None:
+        response = self.client.get("/api/v1/request-sources")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 5
+
+    def test_request_source_has_id_and_name(self) -> None:
+        response = self.client.get("/api/v1/request-sources")
+
+        data = response.json()
+        for item in data:
+            assert "id" in item
+            assert "name" in item
+            assert isinstance(item["id"], str)
+            assert isinstance(item["name"], str)
+
+    def test_contains_known_request_sources(self) -> None:
+        response = self.client.get("/api/v1/request-sources")
+
+        data = response.json()
+        ids = {item["id"] for item in data}
+
+        assert "acme-corp" in ids
+        assert "globex-inc" in ids
+        assert "initech" in ids
+        assert "umbrella-corp" in ids
+        assert "wayne-enterprises" in ids
+
+
+class TestPostDataRequestEndpoint:
+    def setup_method(self) -> None:
+        self.client = TestClient(app)
+
+    def test_create_data_request_success(self) -> None:
+        response = self.client.post(
+            "/api/v1/data-requests",
+            json={
+                "first_name": "New",
+                "last_name": "Request",
+                "request_source_id": "acme-corp",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["first_name"] == "New"
+        assert data["last_name"] == "Request"
+        assert data["request_source_id"] == "acme-corp"
+        assert data["status"] == Status.PROCESSING
+        assert data["created_by"] == "demo_user"
+        assert "id" in data
+        assert "created_on" in data
+
+    def test_create_data_request_missing_first_name(self) -> None:
+        response = self.client.post(
+            "/api/v1/data-requests",
+            json={
+                "last_name": "Request",
+                "request_source_id": "acme-corp",
+            },
+        )
+
+        assert response.status_code == 422
+
+    def test_create_data_request_missing_last_name(self) -> None:
+        response = self.client.post(
+            "/api/v1/data-requests",
+            json={
+                "first_name": "New",
+                "request_source_id": "acme-corp",
+            },
+        )
+
+        assert response.status_code == 422
+
+    def test_create_data_request_missing_request_source_id(self) -> None:
+        response = self.client.post(
+            "/api/v1/data-requests",
+            json={
+                "first_name": "New",
+                "last_name": "Request",
+            },
+        )
+
+        assert response.status_code == 422

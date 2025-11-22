@@ -101,3 +101,13 @@ Database configuration uses environment variables (loaded from `backend/.env`):
 Run both frontend and backend simultaneously for local development:
 - Frontend at http://localhost:5173
 - Backend API at http://localhost:8000
+
+## Testing
+
+**Always write unit tests when adding new backend functionality.** Tests should be added to `backend/tests/` using pytest.
+
+Run backend tests:
+```bash
+cd backend
+uv run pytest
+```
