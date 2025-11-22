@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import pytest
 from fastapi.testclient import TestClient
 
 from core import DataRequest, Status, get_all_data_requests
@@ -58,15 +59,17 @@ class TestDataRequest:
 
 
 class TestGetAllDataRequests:
-    def test_returns_list_of_data_requests(self) -> None:
-        data_requests = get_all_data_requests()
+    @pytest.mark.asyncio
+    async def test_returns_list_of_data_requests(self) -> None:
+        data_requests = await get_all_data_requests()
 
         assert isinstance(data_requests, list)
         assert len(data_requests) > 0
         assert all(isinstance(dr, DataRequest) for dr in data_requests)
 
-    def test_data_requests_have_correct_types(self) -> None:
-        data_requests = get_all_data_requests()
+    @pytest.mark.asyncio
+    async def test_data_requests_have_correct_types(self) -> None:
+        data_requests = await get_all_data_requests()
 
         for dr in data_requests:
             assert isinstance(dr.id, int)
@@ -77,8 +80,9 @@ class TestGetAllDataRequests:
             assert isinstance(dr.created_by, str)
             assert isinstance(dr.request_source_id, str)
 
-    def test_loads_expected_test_data(self) -> None:
-        data_requests = get_all_data_requests()
+    @pytest.mark.asyncio
+    async def test_loads_expected_test_data(self) -> None:
+        data_requests = await get_all_data_requests()
 
         # Verify we have the expected number of test records
         assert len(data_requests) == 6
@@ -91,8 +95,9 @@ class TestGetAllDataRequests:
         assert first.status == Status.CREATED
         assert first.request_source_id == "acme-corp"
 
-    def test_contains_all_status_types(self) -> None:
-        data_requests = get_all_data_requests()
+    @pytest.mark.asyncio
+    async def test_contains_all_status_types(self) -> None:
+        data_requests = await get_all_data_requests()
         statuses = {dr.status for dr in data_requests}
 
         assert Status.CREATED in statuses

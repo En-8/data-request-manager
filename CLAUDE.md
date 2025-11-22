@@ -27,6 +27,18 @@ ruff check .                      # Lint Python code
 ruff format .                     # Format Python code
 ```
 
+### Database
+
+```bash
+python rebuild-db.py --initialize # First-time setup: create database, migrate, and seed
+python rebuild-db.py              # Rebuild: clean, migrate, and seed
+```
+
+Flyway commands (run from `backend/db/`):
+```bash
+flyway -configFiles=flyway.conf info      # Show migration status
+```
+
 API docs available at http://localhost:8000/docs when backend is running.
 
 ## Architecture
@@ -44,7 +56,45 @@ API docs available at http://localhost:8000/docs when backend is running.
 ### Backend (backend/)
 - **FastAPI** with Python 3.12
 - **uv** for package management
+- **PostgreSQL** database (`data_request_manager`)
+- **psycopg3** for async database access
+- **Flyway** for database migrations (date-based versioning: `V20251121001__`)
+- Migrations in `db/migrations/`, seed data in `db/seed.py`
 - Single entry point in `main.py`
+
+## Database Setup
+
+### First-time setup
+
+1. Install PostgreSQL (e.g., `brew install postgresql@17`) and start it
+2. Create the postgres role:
+   ```bash
+   psql postgres
+   CREATE ROLE postgres WITH LOGIN PASSWORD 'postgres' SUPERUSER CREATEDB;
+   \q
+   ```
+3. Create `.env` file in `backend/`:
+   ```
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_NAME=data_request_manager
+   DB_USER=postgres
+   DB_PASSWORD=postgres
+   ```
+4. Initialize the database:
+   ```bash
+   cd backend
+   python rebuild-db.py --initialize
+   ```
+
+### Environment variables
+
+Database configuration uses environment variables (loaded from `backend/.env`):
+- `DB_HOST` - Database host (default: localhost)
+- `DB_PORT` - Database port (default: 5432)
+- `DB_NAME` - Database name (default: data_request_manager)
+- `DB_USER` - Database user (default: postgres)
+- `DB_PASSWORD` - Database password (default: postgres)
 
 ## Development
 

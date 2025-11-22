@@ -1,8 +1,8 @@
-import json
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum
-from pathlib import Path
+
+from core.database import get_connection
 
 
 class Status(IntEnum):
@@ -23,23 +23,29 @@ class DataRequest:
     request_source_id: str
 
 
-def get_all_data_requests() -> list[DataRequest]:
-    """Load all data requests from the JSON data file."""
-    data_path = Path(__file__).parent.parent / "data" / "data_requests.json"
-
-    with open(data_path) as f:
-        raw_data = json.load(f)
+async def get_all_data_requests() -> list[DataRequest]:
+    """Load all data requests from the database."""
+    async with await get_connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT id, first_name, last_name, status, created_on, created_by, request_source_id
+                FROM data_request
+                ORDER BY id
+                """
+            )
+            rows = await cur.fetchall()
 
     data_requests: list[DataRequest] = []
-    for item in raw_data:
+    for row in rows:
         data_request = DataRequest(
-            id=item["id"],
-            first_name=item["firstName"],
-            last_name=item["lastName"],
-            status=Status(item["status"]),
-            created_on=datetime.fromisoformat(item["createdOn"]),
-            created_by=item["createdBy"],
-            request_source_id=item["requestSourceId"],
+            id=row[0],
+            first_name=row[1],
+            last_name=row[2],
+            status=Status(row[3]),
+            created_on=row[4],
+            created_by=row[5],
+            request_source_id=row[6],
         )
         data_requests.append(data_request)
 
