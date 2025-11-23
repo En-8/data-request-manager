@@ -67,6 +67,7 @@ jobs:
       DB_NAME: data_request_manager
       DB_USER: postgres
       DB_PASSWORD: postgres
+      DEMO_USER_PASSWORD: demo
 
     steps:
       - name: Checkout code
