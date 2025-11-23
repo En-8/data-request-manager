@@ -1,24 +1,9 @@
-import { createContext, useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { apiFetch, setToken, removeToken, getToken } from '../lib/api'
 import { API_BASE_URL } from '../config'
+import { AuthContext, type User } from './authContext'
 
-interface User {
-  id: string
-  email: string
-  is_active: boolean
-  is_superuser: boolean
-  is_verified: boolean
-}
-
-export interface AuthContextType {
-  user: User | null
-  isLoading: boolean
-  isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<boolean>
-  logout: () => Promise<void>
-}
-
-export const AuthContext = createContext<AuthContextType | null>(null)
+export type { User, AuthContextType } from './authContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)

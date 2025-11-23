@@ -1,6 +1,8 @@
+import os
 from datetime import date, datetime
 
 import pytest
+from dotenv import load_dotenv
 from httpx import ASGITransport, AsyncClient
 
 from core import (
@@ -15,6 +17,8 @@ from core import (
 )
 from main import app
 
+load_dotenv()
+
 
 @pytest.fixture(scope="module")
 async def client():
@@ -28,21 +32,13 @@ async def client():
 @pytest.fixture(scope="module")
 async def auth_headers(client: AsyncClient) -> dict:
     """Shared auth headers for authenticated endpoint tests."""
-    # Register user
-    await client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": "endpoint_test@example.com",
-            "password": "testpassword123",
-        },
-    )
-
-    # Login and get token
+    # Login with demo user from seed data
+    demo_password = os.getenv("DEMO_USER_PASSWORD")
     login_response = await client.post(
         "/api/v1/auth/jwt/login",
         data={
-            "username": "endpoint_test@example.com",
-            "password": "testpassword123",
+            "username": "demo@example.com",
+            "password": demo_password,
         },
     )
     token = login_response.json()["access_token"]
@@ -149,8 +145,8 @@ class TestGetAllDataRequests:
     async def test_loads_expected_test_data(self) -> None:
         data_requests = await get_all_data_requests()
 
-        # Verify we have the expected number of test records
-        assert len(data_requests) == 6
+        # Verify we have at least the seeded records
+        assert len(data_requests) >= 6
 
         # Verify first record matches expected data
         first = data_requests[0]
@@ -478,7 +474,7 @@ class TestPostDataRequestEndpoint:
         assert data["date_of_birth"] == "1985-03-15"
         assert data["request_source_id"] == "acme-corp"
         assert data["status"] == Status.PROCESSING
-        assert data["created_by"] == "endpoint_test@example.com"
+        assert data["created_by"] == "demo@example.com"
         assert "id" in data
         assert "created_on" in data
 

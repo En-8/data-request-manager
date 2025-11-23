@@ -1,8 +1,10 @@
 import { useContext } from 'react'
-import { AuthContext } from './AuthContext'
+import { AuthContext } from './authContext'
 
 export { AuthProvider } from './AuthContext'
+export type { User, AuthContextType } from './authContext'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) {
