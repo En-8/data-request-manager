@@ -15,7 +15,7 @@ def seed_database():
     with get_sync_connection() as conn:
         with conn.cursor() as cur:
             # Clear existing data
-            cur.execute("TRUNCATE data_request, request_source CASCADE")
+            cur.execute("TRUNCATE data_request, people, request_source CASCADE")
 
             # Load and insert request_sources
             with open(data_dir / "request_sources.json") as f:
@@ -27,6 +27,29 @@ def seed_database():
                     (source["id"], source["name"]),
                 )
 
+            # Load and insert people
+            with open(data_dir / "people.json") as f:
+                people = json.load(f)
+
+            for person in people:
+                cur.execute(
+                    """
+                    INSERT INTO people (id, first_name, last_name, date_of_birth)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (
+                        person["id"],
+                        person["firstName"],
+                        person["lastName"],
+                        person["dateOfBirth"],
+                    ),
+                )
+
+            # Reset the people sequence
+            cur.execute(
+                "SELECT setval('people_id_seq', (SELECT MAX(id) FROM people))"
+            )
+
             # Load and insert data_requests
             with open(data_dir / "data_requests.json") as f:
                 data_requests = json.load(f)
@@ -35,13 +58,15 @@ def seed_database():
                 cur.execute(
                     """
                     INSERT INTO data_request
-                    (id, first_name, last_name, status, created_on, created_by, request_source_id)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    (id, person_id, first_name, last_name, date_of_birth, status, created_on, created_by, request_source_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         request["id"],
+                        request["personId"],
                         request["firstName"],
                         request["lastName"],
+                        request["dateOfBirth"],
                         request["status"],
                         request["createdOn"],
                         request["createdBy"],
@@ -56,6 +81,7 @@ def seed_database():
 
         conn.commit()
         print(f"Seeded {len(request_sources)} request sources")
+        print(f"Seeded {len(people)} people")
         print(f"Seeded {len(data_requests)} data requests")
 
 

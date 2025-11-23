@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -16,27 +15,42 @@ interface RequestSource {
   name: string
 }
 
+interface Person {
+  id: number
+  first_name: string
+  last_name: string
+  date_of_birth: string
+}
+
 export function CreateDataRequestPage() {
   const navigate = useNavigate()
   const [requestSources, setRequestSources] = useState<RequestSource[]>([])
+  const [people, setPeople] = useState<Person[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
+  const [personId, setPersonId] = useState('')
   const [requestSourceId, setRequestSourceId] = useState('')
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/v1/request-sources')
-      .then((response) => {
+    Promise.all([
+      fetch('http://localhost:8000/api/v1/request-sources').then((response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch request sources')
         }
         return response.json()
-      })
-      .then((data) => {
-        setRequestSources(data)
+      }),
+      fetch('http://localhost:8000/api/v1/people').then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch people')
+        }
+        return response.json()
+      }),
+    ])
+      .then(([requestSourcesData, peopleData]) => {
+        setRequestSources(requestSourcesData)
+        setPeople(peopleData)
         setLoading(false)
       })
       .catch((err) => {
@@ -57,8 +71,7 @@ export function CreateDataRequestPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
+          person_id: parseInt(personId, 10),
           request_source_id: requestSourceId,
         }),
       })
@@ -88,22 +101,19 @@ export function CreateDataRequestPage() {
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="firstName">First Name</Label>
-          <Input
-            id="firstName"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName">Last Name</Label>
-          <Input
-            id="lastName"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            required
-          />
+          <Label htmlFor="person">Person</Label>
+          <Select value={personId} onValueChange={setPersonId} required>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a person" />
+            </SelectTrigger>
+            <SelectContent>
+              {people.map((person) => (
+                <SelectItem key={person.id} value={String(person.id)}>
+                  {person.first_name} {person.last_name} ({person.date_of_birth})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label htmlFor="requestSource">Request Source</Label>
@@ -121,7 +131,7 @@ export function CreateDataRequestPage() {
           </Select>
         </div>
         <div className="flex gap-2 pt-4">
-          <Button type="submit" disabled={submitting || !requestSourceId}>
+          <Button type="submit" disabled={submitting || !personId || !requestSourceId}>
             {submitting ? 'Creating...' : 'Create'}
           </Button>
           <Button type="button" variant="outline" asChild>

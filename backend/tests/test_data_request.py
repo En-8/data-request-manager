@@ -1,14 +1,16 @@
-from datetime import datetime
+from datetime import date, datetime
 
 import pytest
 from fastapi.testclient import TestClient
 
 from core import (
     DataRequest,
+    Person,
     RequestSource,
     Status,
     create_data_request,
     get_all_data_requests,
+    get_all_people,
     get_all_request_sources,
 )
 from main import app
@@ -28,13 +30,30 @@ class TestStatus:
         assert Status(99) == Status.COMPLETE
 
 
+class TestPerson:
+    def test_create_person(self) -> None:
+        person = Person(
+            id=1,
+            first_name="John",
+            last_name="Smith",
+            date_of_birth=date(1985, 3, 15),
+        )
+
+        assert person.id == 1
+        assert person.first_name == "John"
+        assert person.last_name == "Smith"
+        assert person.date_of_birth == date(1985, 3, 15)
+
+
 class TestDataRequest:
     def test_create_data_request(self) -> None:
         created_on = datetime(2024, 1, 15, 9, 30, 0)
         data_request = DataRequest(
             id=1,
+            person_id=1,
             first_name="John",
             last_name="Smith",
+            date_of_birth=date(1985, 3, 15),
             status=Status.CREATED,
             created_on=created_on,
             created_by="admin@example.com",
@@ -42,8 +61,10 @@ class TestDataRequest:
         )
 
         assert data_request.id == 1
+        assert data_request.person_id == 1
         assert data_request.first_name == "John"
         assert data_request.last_name == "Smith"
+        assert data_request.date_of_birth == date(1985, 3, 15)
         assert data_request.status == Status.CREATED
         assert data_request.created_on == created_on
         assert data_request.created_by == "admin@example.com"
@@ -52,8 +73,10 @@ class TestDataRequest:
     def test_data_request_status_is_int_enum(self) -> None:
         data_request = DataRequest(
             id=1,
+            person_id=1,
             first_name="Test",
             last_name="User",
+            date_of_birth=date(1990, 1, 1),
             status=Status.PROCESSING,
             created_on=datetime.now(),
             created_by="test@example.com",
@@ -80,8 +103,10 @@ class TestGetAllDataRequests:
 
         for dr in data_requests:
             assert isinstance(dr.id, int)
+            assert isinstance(dr.person_id, int)
             assert isinstance(dr.first_name, str)
             assert isinstance(dr.last_name, str)
+            assert isinstance(dr.date_of_birth, date)
             assert isinstance(dr.status, Status)
             assert isinstance(dr.created_on, datetime)
             assert isinstance(dr.created_by, str)
@@ -97,8 +122,10 @@ class TestGetAllDataRequests:
         # Verify first record matches expected data
         first = data_requests[0]
         assert first.id == 1
+        assert first.person_id == 1
         assert first.first_name == "John"
         assert first.last_name == "Smith"
+        assert first.date_of_birth == date(1985, 3, 15)
         assert first.status == Status.CREATED
         assert first.request_source_id == "acme-corp"
 
@@ -220,18 +247,80 @@ class TestGetAllRequestSources:
         assert "wayne-enterprises" in ids
 
 
+class TestGetAllPeople:
+    @pytest.mark.asyncio
+    async def test_returns_list_of_people(self) -> None:
+        people = await get_all_people()
+
+        assert isinstance(people, list)
+        assert len(people) > 0
+        assert all(isinstance(p, Person) for p in people)
+
+    @pytest.mark.asyncio
+    async def test_people_have_correct_types(self) -> None:
+        people = await get_all_people()
+
+        for p in people:
+            assert isinstance(p.id, int)
+            assert isinstance(p.first_name, str)
+            assert isinstance(p.last_name, str)
+            assert isinstance(p.date_of_birth, date)
+
+    @pytest.mark.asyncio
+    async def test_loads_expected_people(self) -> None:
+        people = await get_all_people()
+
+        # Verify we have the expected number of people
+        assert len(people) == 8
+
+        # Verify a known person exists
+        john = next((p for p in people if p.id == 1), None)
+        assert john is not None
+        assert john.first_name == "John"
+        assert john.last_name == "Smith"
+        assert john.date_of_birth == date(1985, 3, 15)
+
+
+class TestGetPeopleEndpoint:
+    def setup_method(self) -> None:
+        self.client = TestClient(app)
+
+    def test_get_all_people(self) -> None:
+        response = self.client.get("/api/v1/people")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 8
+
+    def test_person_has_required_fields(self) -> None:
+        response = self.client.get("/api/v1/people")
+
+        data = response.json()
+        for item in data:
+            assert "id" in item
+            assert "first_name" in item
+            assert "last_name" in item
+            assert "date_of_birth" in item
+            assert isinstance(item["id"], int)
+            assert isinstance(item["first_name"], str)
+            assert isinstance(item["last_name"], str)
+            assert isinstance(item["date_of_birth"], str)
+
+
 class TestCreateDataRequest:
     @pytest.mark.asyncio
     async def test_creates_data_request_with_correct_values(self) -> None:
         data_request = await create_data_request(
-            first_name="Test",
-            last_name="User",
+            person_id=1,
             request_source_id="acme-corp",
         )
 
         assert isinstance(data_request, DataRequest)
-        assert data_request.first_name == "Test"
-        assert data_request.last_name == "User"
+        assert data_request.person_id == 1
+        assert data_request.first_name == "John"
+        assert data_request.last_name == "Smith"
+        assert data_request.date_of_birth == date(1985, 3, 15)
         assert data_request.request_source_id == "acme-corp"
         assert data_request.status == Status.PROCESSING
         assert data_request.created_by == "demo_user"
@@ -241,12 +330,21 @@ class TestCreateDataRequest:
     @pytest.mark.asyncio
     async def test_creates_data_request_with_auto_generated_id(self) -> None:
         data_request = await create_data_request(
-            first_name="Another",
-            last_name="Test",
+            person_id=2,
             request_source_id="globex-inc",
         )
 
         assert data_request.id > 0
+
+    @pytest.mark.asyncio
+    async def test_creates_data_request_with_invalid_person_raises_error(self) -> None:
+        with pytest.raises(ValueError) as exc_info:
+            await create_data_request(
+                person_id=9999,
+                request_source_id="acme-corp",
+            )
+
+        assert "Person with id 9999 not found" in str(exc_info.value)
 
 
 class TestGetRequestSourcesEndpoint:
@@ -292,38 +390,27 @@ class TestPostDataRequestEndpoint:
         response = self.client.post(
             "/api/v1/data-requests",
             json={
-                "first_name": "New",
-                "last_name": "Request",
+                "person_id": 1,
                 "request_source_id": "acme-corp",
             },
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert data["first_name"] == "New"
-        assert data["last_name"] == "Request"
+        assert data["person_id"] == 1
+        assert data["first_name"] == "John"
+        assert data["last_name"] == "Smith"
+        assert data["date_of_birth"] == "1985-03-15"
         assert data["request_source_id"] == "acme-corp"
         assert data["status"] == Status.PROCESSING
         assert data["created_by"] == "demo_user"
         assert "id" in data
         assert "created_on" in data
 
-    def test_create_data_request_missing_first_name(self) -> None:
+    def test_create_data_request_missing_person_id(self) -> None:
         response = self.client.post(
             "/api/v1/data-requests",
             json={
-                "last_name": "Request",
-                "request_source_id": "acme-corp",
-            },
-        )
-
-        assert response.status_code == 422
-
-    def test_create_data_request_missing_last_name(self) -> None:
-        response = self.client.post(
-            "/api/v1/data-requests",
-            json={
-                "first_name": "New",
                 "request_source_id": "acme-corp",
             },
         )
@@ -334,8 +421,7 @@ class TestPostDataRequestEndpoint:
         response = self.client.post(
             "/api/v1/data-requests",
             json={
-                "first_name": "New",
-                "last_name": "Request",
+                "person_id": 1,
             },
         )
 

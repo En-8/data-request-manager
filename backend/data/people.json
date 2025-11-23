@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "firstName": "John",
+    "lastName": "Smith",
+    "dateOfBirth": "1985-03-15"
+  },
+  {
+    "id": 2,
+    "firstName": "Sarah",
+    "lastName": "Johnson",
+    "dateOfBirth": "1990-07-22"
+  },
+  {
+    "id": 3,
+    "firstName": "Michael",
+    "lastName": "Williams",
+    "dateOfBirth": "1978-11-08"
+  },
+  {
+    "id": 4,
+    "firstName": "Emily",
+    "lastName": "Brown",
+    "dateOfBirth": "1995-01-30"
+  },
+  {
+    "id": 5,
+    "firstName": "David",
+    "lastName": "Jones",
+    "dateOfBirth": "1982-09-12"
+  },
+  {
+    "id": 6,
+    "firstName": "Jessica",
+    "lastName": "Davis",
+    "dateOfBirth": "1988-04-25"
+  },
+  {
+    "id": 7,
+    "firstName": "Robert",
+    "lastName": "Miller",
+    "dateOfBirth": "1975-12-03"
+  },
+  {
+    "id": 8,
+    "firstName": "Amanda",
+    "lastName": "Wilson",
+    "dateOfBirth": "1992-06-18"
+  }
+]

@@ -1,4 +1,5 @@
 import os
+from urllib.parse import quote_plus
 
 import psycopg
 from dotenv import load_dotenv
@@ -13,7 +14,8 @@ def get_connection_string() -> str:
     dbname = os.getenv("DB_NAME", "data_request_manager")
     user = os.getenv("DB_USER", "postgres")
     password = os.getenv("DB_PASSWORD", "postgres")
-    return f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+    encoded_password = quote_plus(password)
+    return f"postgresql://{user}:{encoded_password}@{host}:{port}/{dbname}"
 
 
 async def get_connection() -> psycopg.AsyncConnection:
