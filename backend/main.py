@@ -2,7 +2,12 @@ import os
 from dataclasses import asdict
 from typing import Any
 
-from core import get_all_data_requests, get_all_request_sources, get_all_people, create_data_request
+from core import (
+    get_all_data_requests,
+    get_all_request_sources,
+    get_all_people,
+    create_data_request,
+)
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -11,6 +16,7 @@ from pydantic import BaseModel
 class CreateDataRequestBody(BaseModel):
     person_id: int
     request_source_id: str
+
 
 app = FastAPI()
 

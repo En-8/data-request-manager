@@ -163,7 +163,15 @@ async def create_data_request(
                 VALUES (%s, %s, %s, %s, %s, NOW(), %s, %s)
                 RETURNING id, person_id, first_name, last_name, date_of_birth, status, created_on, created_by, request_source_id
                 """,
-                (person_id, person.first_name, person.last_name, person.date_of_birth, Status.PROCESSING, "demo_user", request_source_id),
+                (
+                    person_id,
+                    person.first_name,
+                    person.last_name,
+                    person.date_of_birth,
+                    Status.PROCESSING,
+                    "demo_user",
+                    request_source_id,
+                ),
             )
             row = await cur.fetchone()
             await conn.commit()

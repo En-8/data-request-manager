@@ -193,8 +193,12 @@ class TestGetDataRequestsEndpoint:
         all_data = all_response.json()
 
         for status_value in [1, 2, 3, 99]:
-            expected_count = sum(1 for item in all_data if item["status"] == status_value)
-            filtered_response = self.client.get(f"/api/v1/data-requests?status={status_value}")
+            expected_count = sum(
+                1 for item in all_data if item["status"] == status_value
+            )
+            filtered_response = self.client.get(
+                f"/api/v1/data-requests?status={status_value}"
+            )
             filtered_data = filtered_response.json()
             assert len(filtered_data) == expected_count
 

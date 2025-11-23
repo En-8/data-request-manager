@@ -46,9 +46,7 @@ def seed_database():
                 )
 
             # Reset the people sequence
-            cur.execute(
-                "SELECT setval('people_id_seq', (SELECT MAX(id) FROM people))"
-            )
+            cur.execute("SELECT setval('people_id_seq', (SELECT MAX(id) FROM people))")
 
             # Load and insert data_requests
             with open(data_dir / "data_requests.json") as f:
