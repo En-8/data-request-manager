@@ -25,6 +25,7 @@ export function DataRequestsPage() {
   const [status, setStatus] = useState('3') // Default to "Needs Review"
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     fetch(`${API_BASE_URL}/api/v1/data-requests?status=${status}`)
       .then((response) => {
