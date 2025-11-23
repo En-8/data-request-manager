@@ -148,6 +148,7 @@ async def get_all_request_sources() -> list[RequestSource]:
 async def create_data_request(
     person_id: int,
     request_source_id: str,
+    created_by: str = "demo_user",
 ) -> DataRequest:
     """Create a new data request in the database."""
     # First, get the person's details
@@ -169,7 +170,7 @@ async def create_data_request(
                     person.last_name,
                     person.date_of_birth,
                     Status.PROCESSING,
-                    "demo_user",
+                    created_by,
                     request_source_id,
                 ),
             )

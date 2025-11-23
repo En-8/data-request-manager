@@ -1,21 +1,47 @@
 import json
+import os
 import sys
 from pathlib import Path
+
+from dotenv import load_dotenv
+from pwdlib import PasswordHash
 
 # Add parent directory to path for imports when run directly
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.database import get_sync_connection
 
+load_dotenv()
+
+password_hash = PasswordHash.recommended()
+
 
 def seed_database():
     """Seed the database with test data from JSON files."""
     data_dir = Path(__file__).parent.parent / "data"
 
+    # Get demo user password from environment
+    demo_password = os.getenv("DEMO_USER_PASSWORD")
+    if not demo_password:
+        raise ValueError(
+            "DEMO_USER_PASSWORD environment variable is required. "
+            "Set it in your .env file."
+        )
+
     with get_sync_connection() as conn:
         with conn.cursor() as cur:
             # Clear existing data
-            cur.execute("TRUNCATE data_request, people, request_source CASCADE")
+            cur.execute('TRUNCATE "user", data_request, people, request_source CASCADE')
+
+            # Insert demo user
+            hashed_password = password_hash.hash(demo_password)
+            cur.execute(
+                """
+                INSERT INTO "user" (email, hashed_password, is_active, is_superuser, is_verified)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                ("demo@example.com", hashed_password, True, False, True),
+            )
 
             # Load and insert request_sources
             with open(data_dir / "request_sources.json") as f:
@@ -78,6 +104,7 @@ def seed_database():
             )
 
         conn.commit()
+        print("Seeded 1 demo user (demo@example.com)")
         print(f"Seeded {len(request_sources)} request sources")
         print(f"Seeded {len(people)} people")
         print(f"Seeded {len(data_requests)} data requests")

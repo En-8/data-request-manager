@@ -5,10 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "asyncpg>=0.30.0",
+    "fastapi-users[sqlalchemy]>=15.0.1",
     "fastapi[standard]>=0.121.3",
     "psycopg[binary]>=3.2.13",
     "python-dotenv>=1.2.1",
     "ruff>=0.14.6",
+    "sqlalchemy[asyncio]>=2.0.44",
 ]
 
 [project.optional-dependencies]
@@ -25,3 +28,5 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"

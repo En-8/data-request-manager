@@ -8,7 +8,15 @@ from core import (
     get_all_people,
     create_data_request,
 )
-from fastapi import FastAPI, Query
+from core.auth import (
+    fastapi_users,
+    auth_backend,
+    current_active_user,
+    User,
+    UserRead,
+    UserUpdate,
+)
+from fastapi import Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -32,6 +40,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Auth routers
+app.include_router(
+    fastapi_users.get_auth_router(auth_backend),
+    prefix="/api/v1/auth/jwt",
+    tags=["auth"],
+)
+app.include_router(
+    fastapi_users.get_users_router(UserRead, UserUpdate),
+    prefix="/api/v1/users",
+    tags=["users"],
+)
+
 
 @app.get("/")
 def read_root() -> dict[str, str]:
@@ -39,7 +59,10 @@ def read_root() -> dict[str, str]:
 
 
 @app.get("/api/v1/data-requests")
-async def get_data_requests(status: int | None = Query(None)) -> list[dict[str, Any]]:
+async def get_data_requests(
+    status: int | None = Query(None),
+    user: User = Depends(current_active_user),
+) -> list[dict[str, Any]]:
     """Get all data requests, optionally filtered by status."""
     data_requests = await get_all_data_requests()
     if status is not None:
@@ -48,24 +71,32 @@ async def get_data_requests(status: int | None = Query(None)) -> list[dict[str, 
 
 
 @app.post("/api/v1/data-requests")
-async def post_data_request(body: CreateDataRequestBody) -> dict[str, Any]:
+async def post_data_request(
+    body: CreateDataRequestBody,
+    user: User = Depends(current_active_user),
+) -> dict[str, Any]:
     """Create a new data request."""
     data_request = await create_data_request(
         person_id=body.person_id,
         request_source_id=body.request_source_id,
+        created_by=user.email,
     )
     return asdict(data_request)
 
 
 @app.get("/api/v1/request-sources")
-async def get_request_sources() -> list[dict[str, Any]]:
+async def get_request_sources(
+    user: User = Depends(current_active_user),
+) -> list[dict[str, Any]]:
     """Get all request sources."""
     request_sources = await get_all_request_sources()
     return [asdict(rs) for rs in request_sources]
 
 
 @app.get("/api/v1/people")
-async def get_people() -> list[dict[str, Any]]:
+async def get_people(
+    user: User = Depends(current_active_user),
+) -> list[dict[str, Any]]:
     """Get all people."""
     people = await get_all_people()
     return [asdict(p) for p in people]

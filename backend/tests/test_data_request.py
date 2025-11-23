@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 import pytest
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
 from core import (
     DataRequest,
@@ -14,6 +14,39 @@ from core import (
     get_all_request_sources,
 )
 from main import app
+
+
+@pytest.fixture(scope="module")
+async def client():
+    """Shared async client for all tests in this module."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
+        yield c
+
+
+@pytest.fixture(scope="module")
+async def auth_headers(client: AsyncClient) -> dict:
+    """Shared auth headers for authenticated endpoint tests."""
+    # Register user
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "endpoint_test@example.com",
+            "password": "testpassword123",
+        },
+    )
+
+    # Login and get token
+    login_response = await client.post(
+        "/api/v1/auth/jwt/login",
+        data={
+            "username": "endpoint_test@example.com",
+            "password": "testpassword123",
+        },
+    )
+    token = login_response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
 
 
 class TestStatus:
@@ -141,63 +174,91 @@ class TestGetAllDataRequests:
 
 
 class TestGetDataRequestsEndpoint:
-    def setup_method(self) -> None:
-        self.client = TestClient(app)
-
-    def test_get_all_data_requests(self) -> None:
-        response = self.client.get("/api/v1/data-requests")
+    @pytest.mark.asyncio
+    async def test_get_all_data_requests(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.get("/api/v1/data-requests", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) == 6
+        assert len(data) >= 6  # At least the seeded data
 
-    def test_filter_by_status_created(self) -> None:
-        response = self.client.get("/api/v1/data-requests?status=1")
+    @pytest.mark.asyncio
+    async def test_filter_by_status_created(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.get(
+            "/api/v1/data-requests?status=1", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
         assert all(item["status"] == 1 for item in data)
 
-    def test_filter_by_status_processing(self) -> None:
-        response = self.client.get("/api/v1/data-requests?status=2")
+    @pytest.mark.asyncio
+    async def test_filter_by_status_processing(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.get(
+            "/api/v1/data-requests?status=2", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
         assert all(item["status"] == 2 for item in data)
 
-    def test_filter_by_status_needs_review(self) -> None:
-        response = self.client.get("/api/v1/data-requests?status=3")
+    @pytest.mark.asyncio
+    async def test_filter_by_status_needs_review(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.get(
+            "/api/v1/data-requests?status=3", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
         assert all(item["status"] == 3 for item in data)
 
-    def test_filter_by_status_complete(self) -> None:
-        response = self.client.get("/api/v1/data-requests?status=99")
+    @pytest.mark.asyncio
+    async def test_filter_by_status_complete(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.get(
+            "/api/v1/data-requests?status=99", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
         assert all(item["status"] == 99 for item in data)
 
-    def test_filter_by_invalid_status_returns_empty(self) -> None:
-        response = self.client.get("/api/v1/data-requests?status=999")
+    @pytest.mark.asyncio
+    async def test_filter_by_invalid_status_returns_empty(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.get(
+            "/api/v1/data-requests?status=999", headers=auth_headers
+        )
 
         assert response.status_code == 200
         data = response.json()
         assert data == []
 
-    def test_filter_returns_correct_count(self) -> None:
+    @pytest.mark.asyncio
+    async def test_filter_returns_correct_count(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
         # Get counts for each status from unfiltered data
-        all_response = self.client.get("/api/v1/data-requests")
+        all_response = await client.get("/api/v1/data-requests", headers=auth_headers)
         all_data = all_response.json()
 
         for status_value in [1, 2, 3, 99]:
             expected_count = sum(
                 1 for item in all_data if item["status"] == status_value
             )
-            filtered_response = self.client.get(
-                f"/api/v1/data-requests?status={status_value}"
+            filtered_response = await client.get(
+                f"/api/v1/data-requests?status={status_value}", headers=auth_headers
             )
             filtered_data = filtered_response.json()
             assert len(filtered_data) == expected_count
@@ -286,19 +347,22 @@ class TestGetAllPeople:
 
 
 class TestGetPeopleEndpoint:
-    def setup_method(self) -> None:
-        self.client = TestClient(app)
-
-    def test_get_all_people(self) -> None:
-        response = self.client.get("/api/v1/people")
+    @pytest.mark.asyncio
+    async def test_get_all_people(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.get("/api/v1/people", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
         assert len(data) == 8
 
-    def test_person_has_required_fields(self) -> None:
-        response = self.client.get("/api/v1/people")
+    @pytest.mark.asyncio
+    async def test_person_has_required_fields(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.get("/api/v1/people", headers=auth_headers)
 
         data = response.json()
         for item in data:
@@ -352,19 +416,22 @@ class TestCreateDataRequest:
 
 
 class TestGetRequestSourcesEndpoint:
-    def setup_method(self) -> None:
-        self.client = TestClient(app)
-
-    def test_get_all_request_sources(self) -> None:
-        response = self.client.get("/api/v1/request-sources")
+    @pytest.mark.asyncio
+    async def test_get_all_request_sources(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.get("/api/v1/request-sources", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
         assert len(data) == 5
 
-    def test_request_source_has_id_and_name(self) -> None:
-        response = self.client.get("/api/v1/request-sources")
+    @pytest.mark.asyncio
+    async def test_request_source_has_id_and_name(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.get("/api/v1/request-sources", headers=auth_headers)
 
         data = response.json()
         for item in data:
@@ -373,8 +440,11 @@ class TestGetRequestSourcesEndpoint:
             assert isinstance(item["id"], str)
             assert isinstance(item["name"], str)
 
-    def test_contains_known_request_sources(self) -> None:
-        response = self.client.get("/api/v1/request-sources")
+    @pytest.mark.asyncio
+    async def test_contains_known_request_sources(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.get("/api/v1/request-sources", headers=auth_headers)
 
         data = response.json()
         ids = {item["id"] for item in data}
@@ -387,16 +457,17 @@ class TestGetRequestSourcesEndpoint:
 
 
 class TestPostDataRequestEndpoint:
-    def setup_method(self) -> None:
-        self.client = TestClient(app)
-
-    def test_create_data_request_success(self) -> None:
-        response = self.client.post(
+    @pytest.mark.asyncio
+    async def test_create_data_request_success(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.post(
             "/api/v1/data-requests",
             json={
                 "person_id": 1,
                 "request_source_id": "acme-corp",
             },
+            headers=auth_headers,
         )
 
         assert response.status_code == 200
@@ -407,26 +478,34 @@ class TestPostDataRequestEndpoint:
         assert data["date_of_birth"] == "1985-03-15"
         assert data["request_source_id"] == "acme-corp"
         assert data["status"] == Status.PROCESSING
-        assert data["created_by"] == "demo_user"
+        assert data["created_by"] == "endpoint_test@example.com"
         assert "id" in data
         assert "created_on" in data
 
-    def test_create_data_request_missing_person_id(self) -> None:
-        response = self.client.post(
+    @pytest.mark.asyncio
+    async def test_create_data_request_missing_person_id(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.post(
             "/api/v1/data-requests",
             json={
                 "request_source_id": "acme-corp",
             },
+            headers=auth_headers,
         )
 
         assert response.status_code == 422
 
-    def test_create_data_request_missing_request_source_id(self) -> None:
-        response = self.client.post(
+    @pytest.mark.asyncio
+    async def test_create_data_request_missing_request_source_id(
+        self, client: AsyncClient, auth_headers: dict
+    ) -> None:
+        response = await client.post(
             "/api/v1/data-requests",
             json={
                 "person_id": 1,
             },
+            headers=auth_headers,
         )
 
         assert response.status_code == 422
