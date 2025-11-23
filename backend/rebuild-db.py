@@ -16,10 +16,21 @@ def initialize_database():
     db_dir = Path(__file__).parent / "db"
     setup_script = db_dir / "setup_db.sql"
 
+    # Get connection parameters from environment
+    host = os.getenv("DB_HOST", "localhost")
+    port = os.getenv("DB_PORT", "5432")
+    user = os.getenv("DB_USER", "postgres")
+    password = os.getenv("DB_PASSWORD", "postgres")
+
+    # Set password via environment variable for psql
+    env = os.environ.copy()
+    env["PGPASSWORD"] = password
+
     result = subprocess.run(
-        ["psql", "-U", os.getenv("DB_USER", "postgres"), "-f", str(setup_script)],
+        ["psql", "-h", host, "-p", port, "-U", user, "-f", str(setup_script)],
         capture_output=True,
         text=True,
+        env=env,
     )
 
     if result.returncode != 0:

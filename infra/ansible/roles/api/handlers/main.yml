@@ -1,0 +1,9 @@
+---
+- name: Reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: Restart API
+  systemd:
+    name: "{{ app_name }}-api"
+    state: restarted

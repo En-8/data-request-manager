@@ -1,0 +1,74 @@
+---
+- name: Install system dependencies
+  dnf:
+    name:
+      - python3.12
+      - python3.12-pip
+      - rsync
+    state: present
+
+- name: Install uv package manager
+  shell: curl -LsSf https://astral.sh/uv/install.sh | sh
+  args:
+    creates: /home/{{ app_user }}/.local/bin/uv
+  become: false
+
+- name: Ensure app directory exists
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+
+- name: Synchronize backend from local directory
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../../backend/"
+    dest: "{{ app_dir }}/"
+    delete: yes
+    rsync_opts:
+      - "--exclude=__pycache__"
+      - "--exclude=.venv"
+      - "--exclude=*.pyc"
+      - "--exclude=.env"
+  notify: Restart API
+
+- name: Set ownership of app directory
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    recurse: yes
+
+- name: Install Python dependencies with uv
+  shell: |
+    export PATH="/home/{{ app_user }}/.local/bin:$PATH"
+    cd {{ app_dir }}
+    uv sync
+  become: false
+  notify: Restart API
+
+- name: Create environment file
+  template:
+    src: env.j2
+    dest: "{{ app_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0600'
+  notify: Restart API
+
+- name: Create systemd service file
+  template:
+    src: api.service.j2
+    dest: /etc/systemd/system/{{ app_name }}-api.service
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart API
+
+- name: Enable and start API service
+  systemd:
+    name: "{{ app_name }}-api"
+    enabled: yes
+    state: started
