@@ -11,3 +11,9 @@ module "backend" {
   ssh_public_key       = var.ssh_public_key
   ssh_private_key_path = var.ssh_private_key_path
 }
+
+module "ui" {
+  source = "./ui"
+
+  project_name = var.project_name
+}

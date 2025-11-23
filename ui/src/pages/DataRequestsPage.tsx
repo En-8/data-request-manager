@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
+import { API_BASE_URL } from '../config'
 import {
   Table,
   TableBody,
@@ -25,7 +26,7 @@ export function DataRequestsPage() {
 
   useEffect(() => {
     setLoading(true)
-    fetch(`http://localhost:8000/api/v1/data-requests?status=${status}`)
+    fetch(`${API_BASE_URL}/api/v1/data-requests?status=${status}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch data requests')

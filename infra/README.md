@@ -40,7 +40,8 @@ uv run python rebuild-db.py
 cd ../infra/ansible
 uv tool run --from ansible ansible-playbook playbook.yml \
 -e "rds_endpoint=$(terraform -chdir=.. output -raw rds_endpoint | cut -d: -f1)" \
--e "db_password=YOUR_SECURE_PASSWORD"
+-e "db_password=YOUR_SECURE_PASSWORD" \
+-e "cors_origins=http://localhost:5173,$(terraform -chdir=.. output -raw frontend_url)"
 ```
 
 ## Outputs
@@ -56,10 +57,22 @@ To deploy code changes (deploys local `backend/` directory):
 
 ```bash
 cd infra/ansible
-ansible-playbook playbook.yml \
-  -e "rds_endpoint=..." \
-  -e "db_password=..."
+uv tool run --from ansible ansible-playbook playbook.yml \
+  -e "rds_endpoint=$(terraform -chdir=.. output -raw rds_endpoint | cut -d: -f1)" \
+  -e "db_password=YOUR_SECURE_PASSWORD" \
+  -e "cors_origins=http://localhost:5173,$(terraform -chdir=.. output -raw frontend_url)"
 ```
+
+## Deploy Frontend
+
+After running `terraform apply` (which creates both backend and frontend infrastructure), deploy the frontend assets:
+
+```bash
+# Build and deploy frontend assets to S3
+./infra/deploy-frontend.sh
+```
+
+The script automatically retrieves the bucket name from Terraform output.
 
 ## Tear Down
 

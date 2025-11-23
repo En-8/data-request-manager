@@ -1,3 +1,4 @@
+import os
 from dataclasses import asdict
 from typing import Any
 
@@ -13,9 +14,13 @@ class CreateDataRequestBody(BaseModel):
 
 app = FastAPI()
 
+# Parse CORS origins from environment variable (comma-separated)
+cors_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:5173")
+cors_origins = [origin.strip() for origin in cors_origins_env.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

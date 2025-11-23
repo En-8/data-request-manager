@@ -11,6 +11,7 @@
     db_name: data_request_manager
     db_user: postgres
     db_password: "{{ db_password }}"
+    cors_origins: "{{ cors_origins }}"
 
   roles:
     - api

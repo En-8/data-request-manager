@@ -17,3 +17,13 @@ output "ssh_command" {
   description = "SSH command to connect to the EC2 instance"
   value       = module.backend.ssh_command
 }
+
+output "frontend_url" {
+  description = "URL of the frontend website"
+  value       = module.ui.website_endpoint
+}
+
+output "frontend_bucket" {
+  description = "Name of the S3 bucket for frontend assets"
+  value       = module.ui.bucket_name
+}

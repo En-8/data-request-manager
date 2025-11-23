@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router'
+import { API_BASE_URL } from '../config'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -35,13 +36,13 @@ export function CreateDataRequestPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('http://localhost:8000/api/v1/request-sources').then((response) => {
+      fetch(`${API_BASE_URL}/api/v1/request-sources`).then((response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch request sources')
         }
         return response.json()
       }),
-      fetch('http://localhost:8000/api/v1/people').then((response) => {
+      fetch(`${API_BASE_URL}/api/v1/people`).then((response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch people')
         }
@@ -65,7 +66,7 @@ export function CreateDataRequestPage() {
     setError(null)
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/data-requests', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/data-requests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
