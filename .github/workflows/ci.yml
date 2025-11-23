@@ -90,7 +90,7 @@ jobs:
         run: uv run ruff format --check .
 
       - name: Initialize database
-        run: python rebuild-db.py --initialize
+        run: uv run python rebuild-db.py --initialize
 
       - name: Run tests
         run: uv run pytest
