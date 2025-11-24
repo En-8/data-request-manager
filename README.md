@@ -71,10 +71,17 @@ API documentation is available at http://localhost:8000/docs
 
 ## Running Tests
 
-**Backend tests:**
+**Backend Tests**
+
 ```bash
-cd backend
+# All tests
 uv run pytest
+
+# Unit tests only (no database required)
+uv run pytest tests/unit
+
+# Integration tests only (requires database)
+uv run pytest tests/integration
 ```
 
 **Backend linting:**
