@@ -1,21 +1,21 @@
 from core.data_request import (
     DataRequest,
-    Person,
-    RequestSource,
+    DataRequestRepository,
+    DataRequestService,
+    PersonNotFoundError,
     Status,
-    create_data_request,
-    get_all_data_requests,
-    get_all_people,
-    get_all_request_sources,
 )
+from core.person import Person, PersonRepository
+from core.request_source import RequestSource, RequestSourceRepository
 
 __all__ = [
     "DataRequest",
+    "DataRequestRepository",
+    "DataRequestService",
     "Person",
+    "PersonNotFoundError",
+    "PersonRepository",
     "RequestSource",
+    "RequestSourceRepository",
     "Status",
-    "create_data_request",
-    "get_all_data_requests",
-    "get_all_people",
-    "get_all_request_sources",
 ]

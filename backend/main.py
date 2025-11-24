@@ -2,23 +2,27 @@ import os
 from dataclasses import asdict
 from typing import Any
 
-from core import (
-    get_all_data_requests,
-    get_all_request_sources,
-    get_all_people,
-    create_data_request,
-)
-from core.auth import (
-    fastapi_users,
-    auth_backend,
-    current_active_user,
-    User,
-    UserRead,
-    UserUpdate,
-)
 from fastapi import Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.auth import (
+    User,
+    UserRead,
+    UserUpdate,
+    auth_backend,
+    current_active_user,
+    fastapi_users,
+)
+from core.data_request import (
+    DataRequestRepository,
+    DataRequestService,
+    PersonNotFoundError,
+)
+from core.database import get_async_session
+from core.person import PersonRepository
+from core.request_source import RequestSourceRepository
 
 
 class CreateDataRequestBody(BaseModel):
@@ -62,9 +66,11 @@ def read_root() -> dict[str, str]:
 async def get_data_requests(
     status: int | None = Query(None),
     user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
 ) -> list[dict[str, Any]]:
     """Get all data requests, optionally filtered by status."""
-    data_requests = await get_all_data_requests()
+    repo = DataRequestRepository(session)
+    data_requests = await repo.get_all()
     if status is not None:
         data_requests = [dr for dr in data_requests if dr.status == status]
     return [asdict(dr) for dr in data_requests]
@@ -74,29 +80,44 @@ async def get_data_requests(
 async def post_data_request(
     body: CreateDataRequestBody,
     user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, Any]:
     """Create a new data request."""
-    data_request = await create_data_request(
-        person_id=body.person_id,
-        request_source_id=body.request_source_id,
-        created_by=user.email,
-    )
+    person_repo = PersonRepository(session)
+    data_request_repo = DataRequestRepository(session)
+    service = DataRequestService(data_request_repo, person_repo)
+
+    try:
+        data_request = await service.create_data_request(
+            person_id=body.person_id,
+            request_source_id=body.request_source_id,
+            created_by=user.email,
+        )
+    except PersonNotFoundError as e:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail=str(e))
+
     return asdict(data_request)
 
 
 @app.get("/api/v1/request-sources")
 async def get_request_sources(
     user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
 ) -> list[dict[str, Any]]:
     """Get all request sources."""
-    request_sources = await get_all_request_sources()
+    repo = RequestSourceRepository(session)
+    request_sources = await repo.get_all()
     return [asdict(rs) for rs in request_sources]
 
 
 @app.get("/api/v1/people")
 async def get_people(
     user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
 ) -> list[dict[str, Any]]:
     """Get all people."""
-    people = await get_all_people()
+    repo = PersonRepository(session)
+    people = await repo.get_all()
     return [asdict(p) for p in people]

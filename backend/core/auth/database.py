@@ -1,31 +1,8 @@
-import os
 from typing import AsyncGenerator
-from urllib.parse import quote_plus
 
-from dotenv import load_dotenv
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 
-load_dotenv()
-
-
-def get_async_database_url() -> str:
-    """Build async database URL for SQLAlchemy from environment variables."""
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")
-    dbname = os.getenv("DB_NAME", "data_request_manager")
-    user = os.getenv("DB_USER", "postgres")
-    password = os.getenv("DB_PASSWORD", "postgres")
-    encoded_password = quote_plus(password)
-    return f"postgresql+asyncpg://{user}:{encoded_password}@{host}:{port}/{dbname}"
-
-
-engine = create_async_engine(
-    get_async_database_url(),
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
-)
-async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
+from core.database import async_session_maker
 
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
